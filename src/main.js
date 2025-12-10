@@ -1,12 +1,10 @@
 // 1. 문장 반복 (3회)
 const text = "두려움은 희망 없이 있을 수 없고 희망은 두려움 없이 있을 수 없다".repeat(3);
 
-// === [NEW] 사운드 엔진 (Web Audio API) ===
+// === 사운드 엔진 (Web Audio API) ===
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioCtx;
 
-// 브라우저 정책상 사용자 인터랙션(클릭 등) 이후에만 오디오가 활성화됨
-// 마우스가 처음 움직일 때 오디오 컨텍스트를 켭니다.
 function initAudio() {
     if (!audioCtx) {
         audioCtx = new AudioContext();
@@ -16,7 +14,6 @@ function initAudio() {
     }
 }
 
-// 소리 합성 함수
 function playSynthSound(type, xPosition) {
     if (!audioCtx) return;
 
@@ -24,59 +21,44 @@ function playSynthSound(type, xPosition) {
     const gainNode = audioCtx.createGain();
     const panner = audioCtx.createStereoPanner();
 
-    // 1. 소리 성향 설정 (Type에 따른 파형 및 주파수)
-    let freq = 440; // 기본 라(A)
+    let freq = 440;
 
     if (type === 'pos') {
-        // 양성 모음: 맑고 높은 소리 (Sine Wave)
         osc.type = 'sine';
-        // 랜덤하게 화음을 쌓음 (C Major Scale: 도, 미, 솔, 높은도)
         const notes = [523.25, 659.25, 783.99, 1046.50];
         freq = notes[Math.floor(Math.random() * notes.length)];
-
     } else if (type === 'neg') {
-        // 음성 모음: 낮고 깊은 소리 (Triangle Wave)
         osc.type = 'triangle';
-        // 낮은 화음 (C Major Low)
         const notes = [130.81, 164.81, 196.00, 261.63];
         freq = notes[Math.floor(Math.random() * notes.length)];
-
     } else {
-        // 중성 모음: 중간 소리
         osc.type = 'sine';
-        freq = 329.63; // 미(E)
+        freq = 329.63;
     }
 
     osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
 
-    // 2. 스테레오 패닝 (마우스 위치에 따라 좌우 소리 조절)
-    // xPosition: 0(왼쪽) ~ 1(오른쪽) -> Panner: -1(왼쪽) ~ 1(오른쪽)
     const panValue = (xPosition * 2) - 1;
     panner.pan.value = panValue;
 
-    // 3. 볼륨 엔벨롭 (ADSR: 부드럽게 켜졌다가 사라짐)
     gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-    // Attack: 0.05초 만에 볼륨 0.2까지 상승
     gainNode.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.05);
-    // Decay: 0.3초 뒤에 볼륨 0으로 하강
     gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
 
-    // 4. 연결 및 재생
     osc.connect(panner);
     panner.connect(gainNode);
     gainNode.connect(audioCtx.destination);
 
     osc.start();
-    osc.stop(audioCtx.currentTime + 0.3); // 0.3초 뒤 소멸
+    osc.stop(audioCtx.currentTime + 0.3);
 }
 // ==========================================
 
-
 // 모음 분류
 const VOWEL_TYPES = {
-    POS: ['ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ'],
-    NEG: ['ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ'],
-    NEU: ['ㅡ', 'ㅢ', 'ㅣ']
+    POS: ['ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ'], // 양성
+    NEG: ['ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ'], // 음성
+    NEU: ['ㅡ', 'ㅢ', 'ㅣ'] // 중성
 };
 
 function getVowelType(vowel) {
@@ -110,6 +92,7 @@ function extractVowels(str) {
     return result;
 }
 
+// 데이터 준비
 const charsData = extractVowels(text);
 const stage = document.querySelector('.stage');
 const radius = Math.min(window.innerWidth, window.innerHeight) * 0.45;
@@ -123,20 +106,13 @@ charsData.forEach((item) => {
     inner.className = `char-inner ${item.type}`;
     inner.textContent = item.t;
 
-    // === [이벤트] 마우스 오버 시 합성음 재생 ===
     if (item.type !== 's') {
         inner.addEventListener('mouseenter', (e) => {
-            // 오디오 컨텍스트가 없으면 초기화
             initAudio();
-
-            // 현재 마우스의 가로 비율 계산 (0~1)
             const ratio = e.clientX / window.innerWidth;
-
-            // 소리 재생 (타입과 위치 전달)
             playSynthSound(item.type, ratio);
         });
     }
-    // ========================================
 
     wrapper.appendChild(inner);
     stage.appendChild(wrapper);
@@ -145,8 +121,14 @@ charsData.forEach((item) => {
 
 // --- 렌더링 로직 ---
 function render(ratio) {
-    const negSpace = 3.0 - (ratio * 2.0);
-    const posSpace = 1.0 + (ratio * 4.5);
+    // ratio: 0(왼쪽) ~ 1(오른쪽)
+
+    // 1. 공간 계수 (Space Factor)
+    const negSpace = 3.0 - (ratio * 2.0); // 범위: 3.0 ~ 1.0
+
+    // [수정] 양성 모음 최대 공간 확대: 5.5 -> 7.5에 맞춰 조정
+    const posSpace = 1.0 + (ratio * 6.5); // 범위: 1.0 ~ 7.5
+
     const neuSpace = 1.0;
     const sSpace = 0.5;
 
@@ -158,6 +140,7 @@ function render(ratio) {
         else totalFactor += sSpace;
     });
 
+    // 배치 계산
     let currentAngle = -Math.PI / 2;
 
     charsData.forEach(item => {
@@ -179,29 +162,42 @@ function render(ratio) {
         currentAngle += myAngle;
     });
 
+    // [스타일 업데이트]
     const root = document.documentElement;
 
-    // 음성 모음 (Negative)
+    // === 1. 음성 모음 (Negative) ===
+    // 왼쪽(0)일 때 커짐
     root.style.setProperty('--neg-weight', 900 - (ratio * 600));
-    root.style.setProperty('--neg-scale', 3.0 - (ratio * 1.8));
-    root.style.setProperty('--neg-blur', (6 - (ratio * 6)) + 'px');
+    root.style.setProperty('--neg-scale', 3.0 - (ratio * 1.8)); // Max 3.0 ~ Min 1.2
 
-    // 양성 모음 (Positive)
+    // [수정] 블러 최소값 보장: 0px -> 2px (항상 연결감 유지)
+    // 범위: 8px(Max) ~ 2px(Min)
+    root.style.setProperty('--neg-blur', (8 - (ratio * 6)) + 'px');
+
+
+    // === 2. 양성 모음 (Positive) ===
+    // 오른쪽(1)일 때 커짐
     root.style.setProperty('--pos-weight', 300 + (ratio * 600));
-    root.style.setProperty('--pos-scale', 1.2 + (ratio * 4.3));
-    root.style.setProperty('--pos-blur', (ratio * 6) + 'px');
 
-    // 중성 모음 (Neutral)
+    // [수정] 최대 스케일 대폭 확대: 5.5 -> 7.5
+    // 범위: 1.2(Min) ~ 7.5(Max)
+    root.style.setProperty('--pos-scale', 1.2 + (ratio * 6.3));
+
+    // [수정] 블러 최소값 보장 및 최대값 상향
+    // 범위: 2px(Min) ~ 10px(Max, 덩어리가 커진 만큼 블러도 강하게)
+    root.style.setProperty('--pos-blur', (2 + (ratio * 8)) + 'px');
+
+
+    // === 3. 중성 모음 (Neutral) ===
     root.style.setProperty('--neu-weight', 600);
     root.style.setProperty('--neu-scale', 1.8);
 }
 
 render(0.5);
 
-// 최초 사용자 반응 시 오디오 초기화
 document.addEventListener('click', initAudio, { once: true });
 document.addEventListener('mousemove', (e) => {
-    initAudio(); // 마우스 움직임으로도 오디오 활성화 시도
+    initAudio();
     const width = window.innerWidth;
     const ratio = e.clientX / width;
     requestAnimationFrame(() => render(ratio));

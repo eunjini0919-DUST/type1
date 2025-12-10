@@ -1,15 +1,17 @@
 :root {
-    /* 초기값 */
+    /* JS 제어 변수 초기값 */
     --pos-weight: 500;
     --pos-scale: 1;
-    --pos-blur: 0px;
+    --pos-blur: 2px;
+    /* 초기 최소값 2px로 설정 */
 
     --neg-weight: 500;
     --neg-scale: 1;
-    --neg-blur: 0px;
+    --neg-blur: 2px;
+    /* 초기 최소값 2px로 설정 */
 
     --neu-weight: 600;
-    --neu-scale: 1.2;
+    --neu-scale: 1.8;
 }
 
 body {
@@ -29,7 +31,7 @@ body {
     width: 100%;
     height: 100%;
 
-    /* [핵심] contrast를 50으로 높여 끈적임을 강화 */
+    /* contrast를 50으로 높여서 블러된 글자들을 끈적하게 뭉침 */
     filter: contrast(50);
 
     background-color: #000;
@@ -38,11 +40,11 @@ body {
     justify-content: center;
     align-items: center;
     transform: translateZ(0);
+    /* 렌더링 최적화 */
 }
 
 .stage {
     position: relative;
-    /* 스테이지 크기도 약간 확대 */
     width: 90vh;
     height: 90vh;
     border-radius: 50%;
@@ -63,11 +65,14 @@ body {
 .char-inner {
     display: block;
     color: #fff;
-    /* [핵심] 기본 폰트 사이즈 대폭 확대 */
     font-size: 3.5rem;
     line-height: 1;
     white-space: nowrap;
 
+    /* 마우스를 올리면 클릭 가능한 것처럼 커서 변경 */
+    cursor: pointer;
+
+    /* 부드러운 변화를 위한 트랜지션 */
     transition: font-variation-settings 0.2s ease-out,
         transform 0.2s ease-out,
         filter 0.2s ease-out;
@@ -75,22 +80,25 @@ body {
     transform-origin: center center;
 }
 
-/* 각 모음 스타일은 기존과 동일 */
+/* 양성 모음 스타일 */
 .pos {
     font-variation-settings: 'wght' var(--pos-weight);
     transform: scale(var(--pos-scale));
     filter: blur(var(--pos-blur));
 }
 
+/* 음성 모음 스타일 */
 .neg {
     font-variation-settings: 'wght' var(--neg-weight);
     transform: scale(var(--neg-scale));
     filter: blur(var(--neg-blur));
 }
 
+/* 중성 모음 스타일 */
 .neu {
     font-variation-settings: 'wght' var(--neu-weight);
     transform: scale(var(--neu-scale));
-    filter: blur(0.5px);
+    /* [수정] 중성 모음 블러 강화: 0.5px -> 1.5px (연결감 향상) */
+    filter: blur(1.5px);
     opacity: 0.8;
 }
